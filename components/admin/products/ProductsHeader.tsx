@@ -1,10 +1,12 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export function ProductsHeader() {
+  const router = useRouter();
+
   return (
     <div className="flex items-center justify-between">
       <div>
@@ -14,8 +16,7 @@ export function ProductsHeader() {
         </p>
       </div>
       <div className="flex items-center gap-4">
-        <Input placeholder="Search products..." className="w-[300px]" />
-        <Button>
+        <Button onClick={() => router.push("/admin/products/add")}>
           <Plus className="mr-2 h-4 w-4" />
           Add Product
         </Button>
