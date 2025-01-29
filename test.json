@@ -1,0 +1,14 @@
+{
+  "authjs.csrf-token": {
+    "name": "authjs.csrf-token",
+    "value": "98712305ec095e47db1b07517a93eef890a0e2c3137c27203467273321f1e584|5c018d605bedfdc774e2bcc290c9a8d3f9530660d91face0a7ade90af1afbd98"
+  },
+  "authjs.callback-url": {
+    "name": "authjs.callback-url",
+    "value": "http://localhost:3000/login"
+  },
+  "authjs.session-token": {
+    "name": "authjs.session-token",
+    "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiQUtCcS05Q0g2M1lKc2thYzJnTm5TTnVlTXpST1RPLV9CVDFwSWFUNURaR1lIc2tWMGRtbnk0RUI3Q0xPQmxpRERibjNLTGVoYWtTX0NmUUZ4UkN1V2cifQ..HwYbCcSSFdmFQtsd3rNpUQ.Re5t9l8u3_CbHhoUXLclGAiNKM8POTYu1sOIuhjvwdGh0hmHkc4808A7dgMEcsGYKI9axV35matpKOqy8z7LNmzMh3bJrY9l7bSJJNusLl2WSTtDUIQZv4mZyXLskss2mtCvifJAG1vniUUnQKKvj0ZJu6flmZ0mrua_wGracLEJbId6KXT5lr4m516dr8i-H_bhcW9L66RkSUHxhZTABX4BsoVEwQXyrUSW1zpUE_rlMIigkxc3kJ9G9DmlRYMV.Bq4FC_RpkE1UfX8xcmRwJ90Zb4Mi_mYqpfPP712D_2E"
+  }
+}

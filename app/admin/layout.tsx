@@ -1,11 +1,7 @@
-import { Metadata } from "next";
+"use client";
+
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { AdminHeader } from "@/components/admin/AdminHeader";
-
-export const metadata: Metadata = {
-  title: "Admin Dashboard - Simple POS",
-  description: "Admin dashboard for managing products, orders and analytics",
-};
 
 interface AdminLayoutProps {
   children: React.ReactNode;

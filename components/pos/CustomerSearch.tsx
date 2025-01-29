@@ -14,62 +14,116 @@ import {
 } from "@/components/ui/card";
 import { UserPlus, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery, useMutation } from "@tanstack/react-query";
 
 interface Customer {
-  id?: string;
+  id: string;
   name: string;
-  mobile: string;
-  isNew?: boolean;
+  phone: string;
+}
+
+interface CustomerInput {
+  name: string;
+  phone: string;
+}
+
+async function suggestCustomers(query: string) {
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/v1/sales_persons/customers/suggest?q=${query}`,
+    {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    }
+  );
+  if (!response.ok) throw new Error("Failed to fetch suggestions");
+  return response.json();
+}
+
+async function createCustomer(data: CustomerInput) {
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/v1/sales_persons/customers/`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    }
+  );
+  if (!response.ok) throw new Error("Failed to create customer");
+  return response.json();
 }
 
 export function CustomerSearch() {
   const [name, setName] = useState("");
-  const [mobile, setMobile] = useState("");
-  const [suggestions, setSuggestions] = useState<Customer[]>([]);
+  const [phone, setPhone] = useState("");
   const setCustomer = useCartStore((state) => state.setCustomer);
   const customer = useCartStore((state) => state.customer);
   const { toast } = useToast();
 
-  const handleSearch = async (query: string, field: "name" | "mobile") => {
-    if (field === "name") setName(query);
-    else setMobile(query);
+  const { data: suggestions = [], isLoading } = useQuery({
+    queryKey: ["customerSuggestions", name],
+    queryFn: () => suggestCustomers(name),
+    enabled: name.length >= 2,
+  });
 
-    if (query.length < 2) {
-      setSuggestions([]);
-      return;
-    }
-
-    // TODO: Implement API call to search customers
-    // For now, we'll just create a new customer
-    setSuggestions([
-      {
-        id: "new",
-        name: field === "name" ? query : name,
-        mobile: field === "mobile" ? query : mobile,
-        isNew: true,
-      },
-    ]);
-  };
-
-  const handleSelectCustomer = (customer: Customer) => {
-    if (!name || !mobile) {
+  const createCustomerMutation = useMutation({
+    mutationFn: createCustomer,
+    onSuccess: (newCustomer) => {
+      setCustomer(newCustomer);
+      toast({
+        title: "Customer Created",
+        description: `${newCustomer.name} (${newCustomer.phone})`,
+      });
+    },
+    onError: (error) => {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Please fill in both name and mobile number",
+        description: "Failed to create customer. Please try again.",
+      });
+    },
+  });
+
+  const handleSearch = (query: string, field: "name" | "phone") => {
+    if (field === "name") setName(query);
+    else setPhone(query);
+  };
+
+  const handleSelectCustomer = (selectedCustomer: Customer) => {
+    setCustomer(selectedCustomer);
+    setName(selectedCustomer.name);
+    setPhone(selectedCustomer.phone);
+    toast({
+      title: "Customer Selected",
+      description: `${selectedCustomer.name} (${selectedCustomer.phone})`,
+    });
+  };
+
+  const handleCreateCustomer = () => {
+    if (!name || !phone) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please fill in both name and phone number",
       });
       return;
     }
 
-    setName(customer.name);
-    setMobile(customer.mobile);
-    setCustomer(customer);
-    setSuggestions([]);
+    // Validate phone number format (Ghana phone number format)
+    const phoneRegex = /^0(2(0|[3-8])|5(0|[4-7]|9))\d{7}$/;
+    if (!phoneRegex.test(phone)) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please enter a valid Ghana phone number",
+      });
+      return;
+    }
 
-    toast({
-      title: customer.isNew ? "New Customer Created" : "Customer Selected",
-      description: `${customer.name} (${customer.mobile})`,
-    });
+    createCustomerMutation.mutate({ name, phone });
   };
 
   return (
@@ -81,7 +135,7 @@ export function CustomerSearch() {
         </CardTitle>
         <CardDescription>
           {customer
-            ? `Selected: ${customer.name} (${customer.mobile})`
+            ? `Selected: ${customer.name} (${customer.phone})`
             : "Search for existing customer or create new one"}
         </CardDescription>
       </CardHeader>
@@ -96,37 +150,51 @@ export function CustomerSearch() {
           />
         </div>
         <div className="grid gap-2">
-          <Label htmlFor="mobile">Mobile</Label>
+          <Label htmlFor="phone">Phone</Label>
           <Input
-            id="mobile"
-            placeholder="Mobile number"
-            value={mobile}
-            onChange={(e) => handleSearch(e.target.value, "mobile")}
+            id="phone"
+            placeholder="Phone number (e.g., 0241234567)"
+            value={phone}
+            onChange={(e) => handleSearch(e.target.value, "phone")}
           />
         </div>
 
+        {isLoading && (
+          <div className="text-sm text-muted-foreground">
+            Loading suggestions...
+          </div>
+        )}
+
         {suggestions.length > 0 && (
-          <div className="mt-2">
-            {suggestions.map((customer) => (
+          <div className="mt-2 space-y-1">
+            {suggestions.map((suggestion: Customer) => (
               <Button
-                key={customer.id}
+                key={suggestion.id}
                 variant="ghost"
                 className="w-full justify-start gap-2 h-auto py-2"
-                onClick={() => handleSelectCustomer(customer)}>
-                <UserPlus className="h-4 w-4 shrink-0" />
+                onClick={() => handleSelectCustomer(suggestion)}>
+                <User className="h-4 w-4 shrink-0" />
                 <div className="flex flex-col items-start text-sm truncate">
-                  {customer.isNew && (
-                    <span className="text-muted-foreground">
-                      Create new customer
-                    </span>
-                  )}
                   <span className="truncate w-full">
-                    {customer.name} ({customer.mobile})
+                    {suggestion.name} ({suggestion.phone})
                   </span>
                 </div>
               </Button>
             ))}
           </div>
+        )}
+
+        {name && phone && !customer && (
+          <Button
+            variant="outline"
+            className="w-full justify-start gap-2"
+            onClick={handleCreateCustomer}
+            disabled={createCustomerMutation.isPending}>
+            <UserPlus className="h-4 w-4" />
+            {createCustomerMutation.isPending
+              ? "Creating..."
+              : "Create New Customer"}
+          </Button>
         )}
       </CardContent>
     </Card>
