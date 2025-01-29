@@ -8,13 +8,77 @@ import { ShoppingCart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { CartItem } from "./CartItem";
+import Cookies from "js-cookie";
 
 interface CartSectionProps {
   className?: string;
 }
 
+function getAuthToken(): string | null {
+  const authData = Cookies.get("auth-storage");
+  if (!authData) return null;
+
+  try {
+    const parsedData = JSON.parse(decodeURIComponent(authData));
+    const token = parsedData.state?.token || null;
+    return token;
+  } catch (error) {
+    console.error("Error parsing auth data:", error);
+    return null;
+  }
+}
+
+async function createCustomer(data: { name: string; phone: string }) {
+  const token = getAuthToken();
+  if (!token) throw new Error("No authentication token found");
+
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/v1/sales_persons/customers/`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: token,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    }
+  );
+  if (!response.ok) throw new Error("Failed to create customer");
+  return response.json();
+}
+
+async function createOrder(data: {
+  customerId: string;
+  items: { productId: string; quantity: number }[];
+}) {
+  const token = getAuthToken();
+  if (!token) throw new Error("No authentication token found");
+
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/v1/sales_persons/orders/`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: token,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    }
+  );
+  if (!response.ok) throw new Error("Failed to create order");
+  return response.json();
+}
+
 export function CartSection({ className }: CartSectionProps) {
-  const { items, total, removeItem, updateQuantity, customer } = useCartStore();
+  const {
+    items,
+    total,
+    removeItem,
+    updateQuantity,
+    customer,
+    setCustomer,
+    clearCart,
+  } = useCartStore();
   const { toast } = useToast();
 
   const handleUpdateQuantity = (
@@ -42,12 +106,49 @@ export function CartSection({ className }: CartSectionProps) {
       });
       return;
     }
-    // TODO: Implement checkout
-    console.log("Checkout", { items, total, customer });
-    toast({
-      title: "Order Placed",
-      description: `Order total: ₵${total.toFixed(2)}`,
-    });
+
+    try {
+      let customerId: string;
+
+      // If this is a pending customer, create them first
+      if (customer.isPending) {
+        const newCustomer = await createCustomer({
+          name: customer.name,
+          phone: customer.phone,
+        });
+        customerId = newCustomer.id;
+        setCustomer(newCustomer); // Update the customer in the store with the created one
+      } else if (!customer.id) {
+        throw new Error("Invalid customer ID");
+      } else {
+        customerId = customer.id;
+      }
+
+      // Create the order
+      await createOrder({
+        customerId,
+        items: items.map((item) => ({
+          productId: item.id,
+          quantity: item.quantity,
+        })),
+      });
+
+      // Clear the cart after successful order
+      clearCart();
+
+      toast({
+        title: "Order Placed",
+        description: `Order total: ₵${total.toFixed(2)}`,
+      });
+    } catch (error) {
+      console.error("Checkout error:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description:
+          error instanceof Error ? error.message : "Failed to place order",
+      });
+    }
   };
 
   return (
@@ -93,7 +194,13 @@ export function CartSection({ className }: CartSectionProps) {
           size="lg"
           disabled={items.length === 0 || !customer}
           onClick={handleCheckout}>
-          {customer ? "Place Order" : "Select Customer to Continue"}
+          {items.length === 0
+            ? "Add Items to Cart"
+            : customer
+            ? customer.isPending
+              ? "Place Order & Create Customer"
+              : "Place Order"
+            : "Enter Customer Details"}
         </Button>
       </div>
     </div>

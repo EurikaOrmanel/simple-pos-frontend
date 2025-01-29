@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader2 } from "lucide-react";
+import { Loader2, Mail, Lock } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -19,6 +19,8 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/stores/auth";
 import { loginAdmin, loginSalesPerson } from "@/lib/services/auth";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -27,14 +29,10 @@ const loginSchema = z.object({
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
-interface LoginFormProps {
-  type: "admin" | "pos";
-}
-
-export function LoginForm({ type }: LoginFormProps) {
+export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const { toast } = useToast();
-
   const login = useAuthStore((state) => state.login);
 
   const form = useForm<LoginFormData>({
@@ -48,25 +46,18 @@ export function LoginForm({ type }: LoginFormProps) {
   async function onSubmit(data: LoginFormData) {
     setIsLoading(true);
     try {
-      const loginFn = type === "admin" ? loginAdmin : loginSalesPerson;
+      const loginFn = isAdmin ? loginAdmin : loginSalesPerson;
       const { access_token } = await loginFn(data);
-      console.log("Login successful, token:", access_token);
-
-      login(access_token, type);
-      console.log("Auth store updated");
+      login(access_token, isAdmin ? "admin" : "pos");
 
       toast({
         title: "Login successful",
         description: "Welcome back!",
       });
 
-      const redirectPath = type === "admin" ? "/admin" : "/pos";
-      console.log("Redirecting to:", redirectPath);
-
       // Force a hard navigation
-      window.location.href = redirectPath;
-    } catch (error: unknown) {
-      console.error("Login error:", error);
+      window.location.href = isAdmin ? "/admin" : "/pos";
+    } catch {
       toast({
         title: "Error",
         description: "Invalid credentials. Please try again.",
@@ -79,9 +70,7 @@ export function LoginForm({ type }: LoginFormProps) {
 
   return (
     <Form {...form}>
-      <form
-        onSubmit={form.handleSubmit(onSubmit)}
-        className="space-y-6 w-full max-w-md">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <FormField
           control={form.control}
           name="email"
@@ -89,7 +78,14 @@ export function LoginForm({ type }: LoginFormProps) {
             <FormItem>
               <FormLabel>Email</FormLabel>
               <FormControl>
-                <Input placeholder="Enter your email" {...field} />
+                <div className="relative">
+                  <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Enter your email"
+                    className="pl-9"
+                    {...field}
+                  />
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -102,18 +98,33 @@ export function LoginForm({ type }: LoginFormProps) {
             <FormItem>
               <FormLabel>Password</FormLabel>
               <FormControl>
-                <Input
-                  type="password"
-                  placeholder="Enter your password"
-                  {...field}
-                />
+                <div className="relative">
+                  <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="password"
+                    placeholder="Enter your password"
+                    className="pl-9"
+                    {...field}
+                  />
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
-        <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        <div className="flex items-center space-x-2">
+          <Switch
+            id="admin-mode"
+            checked={isAdmin}
+            onCheckedChange={setIsAdmin}
+          />
+          <Label htmlFor="admin-mode">Login as Administrator</Label>
+        </div>
+        <Button
+          type="submit"
+          className="w-full transition-all hover:scale-[1.02]"
+          disabled={isLoading}>
+          {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
           Sign In
         </Button>
       </form>

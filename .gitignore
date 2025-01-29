@@ -42,3 +42,4 @@ next-env.d.ts
 .cursorrules
 doc.txt
 openapi.json
+test.json

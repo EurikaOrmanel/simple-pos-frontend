@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
 import { Minus, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { API_BASE_URL } from "@/lib/api/client";
 
 interface Product {
   id: string;
@@ -53,7 +54,7 @@ export function ProductCard({ product }: ProductCardProps) {
       <CardContent className="p-0">
         <div className="relative h-48 w-full bg-muted">
           <Image
-            src={product.image}
+            src={API_BASE_URL + product.image}
             alt={product.name}
             fill
             className="object-cover group-hover:scale-105 transition-transform"

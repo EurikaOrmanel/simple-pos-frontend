@@ -1,7 +1,5 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -10,147 +8,134 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Edit, MoreHorizontal, Trash } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Edit, MoreHorizontal, Trash } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { toast } from "@/hooks/use-toast";
+import { productsApi } from "@/lib/api/products";
+import { useState, useEffect } from "react";
 import Image from "next/image";
-import { TableFilters } from "./TableFilters";
+import { API_BASE_URL } from "@/lib/api/client";
 
-// This will be replaced with actual API data
-const products = [
-  {
-    id: "1",
-    name: "Nike Air Max",
-    price: 29.99,
-    image:
-      "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500&q=80",
-    createdAt: "2024-02-20",
-  },
-  {
-    id: "2",
-    name: "Premium Watch",
-    price: 199.99,
-    image:
-      "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&q=80",
-    createdAt: "2024-02-21",
-  },
-  {
-    id: "3",
-    name: "Wireless Earbuds",
-    price: 79.99,
-    image:
-      "https://images.unsplash.com/photo-1572569511254-d8f925fe2cbb?w=500&q=80",
-    createdAt: "2024-02-22",
-  },
-];
+interface Product {
+  id: string;
+  name: string;
+  price: string;
+  image: string;
+}
 
 export function ProductsTable() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [priceRange, setPriceRange] = useState("all");
+  const router = useRouter();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const filteredProducts = useMemo(() => {
-    return products.filter((product) => {
-      const matchesSearch = product.name
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase());
+  useEffect(() => {
+    fetchProducts();
+  }, []);
 
-      let matchesPriceRange = true;
-      if (priceRange !== "all") {
-        const [min, max] = priceRange.split("-").map(Number);
-        if (max) {
-          matchesPriceRange = product.price >= min && product.price <= max;
-        } else {
-          // For "101+" case
-          matchesPriceRange = product.price >= min;
-        }
-      }
-
-      return matchesSearch && matchesPriceRange;
-    });
-  }, [searchQuery, priceRange]);
-
-  const resetFilters = () => {
-    setSearchQuery("");
-    setPriceRange("all");
+  const fetchProducts = async () => {
+    try {
+      const response = await productsApi.getAll();
+      setProducts(response);
+    } catch (error) {
+      console.error("Error fetching products:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load products. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  return (
-    <div className="space-y-4">
-      <TableFilters
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        priceRange={priceRange}
-        onPriceRangeChange={setPriceRange}
-        onResetFilters={resetFilters}
-      />
+  const handleEdit = (productId: string) => {
+    router.push(`/admin/products/${productId}/edit`);
+  };
 
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Image</TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead>Price</TableHead>
-              <TableHead>Created At</TableHead>
-              <TableHead className="w-[70px]">Actions</TableHead>
+  const handleDelete = async (productId: string) => {
+    try {
+      await productsApi.delete(productId);
+
+      toast({
+        title: "Product deleted",
+        description: "The product has been deleted successfully.",
+      });
+
+      // Refresh the products list
+      fetchProducts();
+    } catch (error) {
+      console.error("Error deleting product:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete product. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
+  return (
+    <div className="rounded-md border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Image</TableHead>
+            <TableHead>Name</TableHead>
+            <TableHead>Price</TableHead>
+            <TableHead className="w-[100px]">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {products.map((product) => (
+            <TableRow key={product.id}>
+              <TableCell>
+                <div className="relative h-10 w-10 overflow-hidden rounded-md">
+                  <Image
+                    src={API_BASE_URL + product.image}
+                    alt={product.name}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+              </TableCell>
+              <TableCell className="font-medium">{product.name}</TableCell>
+              <TableCell>${parseFloat(product.price).toFixed(2)}</TableCell>
+              <TableCell>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon">
+                      <MoreHorizontal className="h-4 w-4" />
+                      <span className="sr-only">Open menu</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => handleEdit(product.id)}>
+                      <Edit className="mr-2 h-4 w-4" />
+                      Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-destructive"
+                      onClick={() => handleDelete(product.id)}>
+                      <Trash className="mr-2 h-4 w-4" />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </TableCell>
             </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredProducts.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={5}
-                  className="text-center h-24 text-muted-foreground">
-                  No products found
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredProducts.map((product) => (
-                <TableRow key={product.id}>
-                  <TableCell>
-                    <div className="h-12 w-12 relative rounded-md overflow-hidden bg-muted">
-                      <Image
-                        src={product.image}
-                        alt={product.name}
-                        fill
-                        className="object-cover"
-                        sizes="(max-width: 48px) 100vw, 48px"
-                      />
-                    </div>
-                  </TableCell>
-                  <TableCell className="font-medium">{product.name}</TableCell>
-                  <TableCell>${product.price.toFixed(2)}</TableCell>
-                  <TableCell>{product.createdAt}</TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Open menu</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">
-                          <Trash className="mr-2 h-4 w-4" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+          ))}
+        </TableBody>
+      </Table>
     </div>
   );
 }

@@ -23,44 +23,38 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  // If authenticated, redirect from login pages to respective dashboards
+  // If authenticated, redirect from login page to respective dashboards
   if (isAuthenticated && token) {
-    if (pathname === "/admin/login" && userRole === "admin") {
-      return NextResponse.redirect(new URL("/admin", request.url));
-    }
-    if (pathname === "/pos/login" && userRole === "pos") {
-      return NextResponse.redirect(new URL("/pos", request.url));
+    if (pathname === "/login") {
+      return NextResponse.redirect(
+        new URL(userRole === "admin" ? "/admin" : "/pos", request.url)
+      );
     }
   }
 
   // Public paths that don't require authentication
-  const publicPaths = ["/admin/login", "/pos/login"];
+  const publicPaths = ["/login"];
   if (publicPaths.includes(pathname)) {
-    console.log("allowed path");
     return NextResponse.next();
   }
 
   // Check if user is trying to access admin routes
   if (pathname.startsWith("/admin")) {
     if (!isAuthenticated || !token) {
-      console.log("redirecting to login");
-      return NextResponse.redirect(new URL("/admin/login", request.url));
+      return NextResponse.redirect(new URL("/login", request.url));
     }
     if (userRole !== "admin") {
-      console.log("redirecting to login");
-      return NextResponse.redirect(new URL("/admin/login", request.url));
+      return NextResponse.redirect(new URL("/login", request.url));
     }
   }
 
   // Check if user is trying to access POS routes
   if (pathname.startsWith("/pos")) {
     if (!isAuthenticated || !token) {
-      console.log("redirecting to login");
-      return NextResponse.redirect(new URL("/pos/login", request.url));
+      return NextResponse.redirect(new URL("/login", request.url));
     }
     if (userRole !== "pos") {
-      console.log("redirecting to login");
-      return NextResponse.redirect(new URL("/pos/login", request.url));
+      return NextResponse.redirect(new URL("/login", request.url));
     }
   }
 
@@ -81,5 +75,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/pos/:path*"],
+  matcher: ["/admin/:path*", "/pos/:path*", "/login"],
 };

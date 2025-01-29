@@ -3,17 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, Package, ShoppingCart, Users } from "lucide-react";
+import { Package, ShoppingCart, Users } from "lucide-react";
 
 const sidebarLinks = [
   {
-    title: "Dashboard",
-    href: "/admin",
-    icon: LayoutDashboard,
-  },
-  {
     title: "Products",
-    href: "/admin/products",
+    href: "/admin",
     icon: Package,
   },
   {

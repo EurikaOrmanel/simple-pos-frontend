@@ -2,7 +2,8 @@
 
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
-import { LogOut, User } from "lucide-react";
+import { User } from "lucide-react";
+import { LogoutButton } from "@/components/auth/LogoutButton";
 
 export function AdminHeader() {
   return (
@@ -15,9 +16,7 @@ export function AdminHeader() {
           <Button variant="ghost" size="icon">
             <User className="h-5 w-5" />
           </Button>
-          <Button variant="ghost" size="icon">
-            <LogOut className="h-5 w-5" />
-          </Button>
+          <LogoutButton />
         </div>
       </div>
     </header>

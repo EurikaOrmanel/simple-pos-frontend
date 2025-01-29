@@ -11,8 +11,8 @@ interface CartItem {
 interface Customer {
   id?: string;
   name: string;
-  mobile: string;
-  isNew?: boolean;
+  phone: string;
+  isPending?: boolean;
 }
 
 interface CartStore {
@@ -22,6 +22,7 @@ interface CartStore {
   removeItem: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
   setCustomer: (customer: Customer) => void;
+  setPendingCustomer: (name: string, phone: string) => void;
   clearCart: () => void;
   total: number;
 }
@@ -75,7 +76,11 @@ export const useCartStore = create<CartStore>((set, get) => ({
   },
 
   setCustomer: (customer) => {
-    set({ customer });
+    set({ customer: { ...customer, isPending: false } });
+  },
+
+  setPendingCustomer: (name, phone) => {
+    set({ customer: { name, phone, isPending: true } });
   },
 
   clearCart: () => {

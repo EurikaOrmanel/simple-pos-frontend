@@ -4,6 +4,7 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Minus, Plus, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { API_BASE_URL } from "@/lib/api/client";
 
 interface CartItemProps {
   id: string;
@@ -41,7 +42,12 @@ export function CartItem({
     <div className="flex flex-col bg-card rounded-lg p-3 gap-3">
       <div className="flex gap-3">
         <div className="h-16 w-16 relative rounded-md overflow-hidden bg-muted shrink-0">
-          <Image src={image} alt={name} fill className="object-cover" />
+          <Image
+            src={API_BASE_URL + image}
+            alt={name}
+            fill
+            className="object-cover"
+          />
         </div>
         <div className="flex-1 min-w-0">
           <h4 className="font-medium leading-none truncate mb-1">{name}</h4>
