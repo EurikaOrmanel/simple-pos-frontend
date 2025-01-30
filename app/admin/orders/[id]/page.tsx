@@ -16,103 +16,70 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Package, User, Calendar, DollarSign } from "lucide-react";
+import { ArrowLeft, User, Calendar, DollarSign } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { cn } from "@/lib/utils";
-import { useEffect, useState } from "react";
-
-// Reuse the types from OrdersTable
-const orderStatuses = {
-  pending: "bg-yellow-100 text-yellow-800",
-  processing: "bg-blue-100 text-blue-800",
-  completed: "bg-green-100 text-green-800",
-  cancelled: "bg-red-100 text-red-800",
-} as const;
-
-type OrderStatus = keyof typeof orderStatuses;
-
-// Replace hardcoded data with state
-interface OrderDetails {
-  id: string;
-  orderNumber: string;
-  customer: {
-    name: string;
-    email: string;
-    phone: string;
-  };
-  date: string;
-  status: OrderStatus;
-  items: Array<{
-    id: string;
-    name: string;
-    quantity: number;
-    price: number;
-    total: number;
-  }>;
-  subtotal: number;
-  tax: number;
-  total: number;
-}
+import { useEffect, useState, use } from "react";
+import { ordersApi, type Order } from "@/lib/api/orders";
 
 export default function OrderDetailsPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const { id } = use(params);
   const router = useRouter();
-  const [orderDetails, setOrderDetails] = useState<OrderDetails | null>(null);
+  const [order, setOrder] = useState<Order | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // TODO: Replace with actual API call
     const fetchOrderDetails = async () => {
       try {
         setIsLoading(true);
-        // Simulate API call using the params.id
-        console.log(`Fetching order details for ID: ${params.id}`);
-        // For now return mock data
-        setOrderDetails({
-          id: params.id,
-          orderNumber: "ORD-001",
-          customer: {
-            name: "John Doe",
-            email: "john@example.com",
-            phone: "+233 20 123 4567",
-          },
-          date: "2024-03-20 14:30",
-          status: "completed",
-          items: [
-            {
-              id: "1",
-              name: "Classic Burger",
-              quantity: 2,
-              price: 29.99,
-              total: 59.98,
-            },
-            {
-              id: "2",
-              name: "Cheese Pizza",
-              quantity: 1,
-              price: 34.99,
-              total: 34.99,
-            },
-          ],
-          subtotal: 94.97,
-          tax: 7.6,
-          total: 102.57,
-        });
-      } catch (error) {
-        console.error("Error fetching order details:", error);
+        const data = await ordersApi.getById(id);
+        setOrder(data);
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Failed to fetch order details"
+        );
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchOrderDetails();
-  }, [params.id]);
+  }, [id]);
 
-  if (isLoading || !orderDetails) return <div>Loading...</div>;
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto" />
+          <p className="text-muted-foreground">Loading order details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center space-y-4">
+          <p className="text-destructive">Error: {error}</p>
+          <Button variant="outline" onClick={() => window.location.reload()}>
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!order) return null;
+
+  const total = order.items.reduce(
+    (sum, item) => sum + Number(item.product.price) * item.quantity,
+    0
+  );
 
   return (
     <div className="space-y-6">
@@ -137,44 +104,24 @@ export default function OrderDetailsPage({
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Order Number</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{orderDetails.orderNumber}</div>
-            <Badge
-              variant="secondary"
-              className={cn(
-                "mt-2 capitalize",
-                orderStatuses[orderDetails.status]
-              )}>
-              {orderDetails.status}
-            </Badge>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Customer</CardTitle>
             <User className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {orderDetails.customer.name}
-            </div>
+            <div className="text-2xl font-bold">{order.customer.name}</div>
             <p className="text-xs text-muted-foreground">
-              {orderDetails.customer.email}
+              {order.customer.phone}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Order Date</CardTitle>
+            <CardTitle className="text-sm font-medium">Items</CardTitle>
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{orderDetails.date}</div>
+            <div className="text-2xl font-bold">{order.items.length}</div>
           </CardContent>
         </Card>
 
@@ -184,9 +131,7 @@ export default function OrderDetailsPage({
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              ₵{orderDetails.total.toFixed(2)}
-            </div>
+            <div className="text-2xl font-bold">₵{total.toFixed(2)}</div>
           </CardContent>
         </Card>
       </div>
@@ -210,40 +155,26 @@ export default function OrderDetailsPage({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {orderDetails.items.map((item) => (
+              {order.items.map((item) => (
                 <TableRow key={item.id}>
-                  <TableCell className="font-medium">{item.name}</TableCell>
+                  <TableCell className="font-medium">
+                    {item.product.name}
+                  </TableCell>
                   <TableCell className="text-right">{item.quantity}</TableCell>
                   <TableCell className="text-right">
-                    ₵{item.price.toFixed(2)}
+                    ₵{Number(item.product.price).toFixed(2)}
                   </TableCell>
                   <TableCell className="text-right">
-                    ₵{item.total.toFixed(2)}
+                    ₵{(Number(item.product.price) * item.quantity).toFixed(2)}
                   </TableCell>
                 </TableRow>
               ))}
               <TableRow>
                 <TableCell colSpan={3} className="text-right font-medium">
-                  Subtotal
-                </TableCell>
-                <TableCell className="text-right">
-                  ₵{orderDetails.subtotal.toFixed(2)}
-                </TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell colSpan={3} className="text-right font-medium">
-                  Tax
-                </TableCell>
-                <TableCell className="text-right">
-                  ₵{orderDetails.tax.toFixed(2)}
-                </TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell colSpan={3} className="text-right font-medium">
                   Total
                 </TableCell>
                 <TableCell className="text-right font-bold">
-                  ₵{orderDetails.total.toFixed(2)}
+                  ₵{total.toFixed(2)}
                 </TableCell>
               </TableRow>
             </TableBody>

@@ -3,11 +3,9 @@
 import { ProductSection } from "./ProductSection";
 import { CartSection } from "./CartSection";
 import { useEffect, useState } from "react";
-import { Store, History, Search } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Store, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { LogoutButton } from "@/components/auth/LogoutButton";
-import { ThemeToggle } from "@/components/theme-toggle";
 
 export function POSLayout() {
   const [isLoading, setIsLoading] = useState(true);
@@ -41,11 +39,6 @@ export function POSLayout() {
               />
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" className="gap-2">
-                <History className="h-4 w-4" />
-                Order History
-              </Button>
-              <ThemeToggle />
               <LogoutButton />
             </div>
           </div>

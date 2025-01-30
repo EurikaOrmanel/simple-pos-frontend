@@ -15,74 +15,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { MoreHorizontal, Eye } from "lucide-react";
-import { cn } from "@/lib/utils";
-import {
-  useOrderStore,
-  type Order,
-  type OrderStatus,
-} from "@/stores/useOrderStore";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { ordersApi, type Order } from "@/lib/api/orders";
 
-// Types for the order status
-const orderStatuses = {
-  pending: "bg-yellow-100 text-yellow-800",
-  processing: "bg-blue-100 text-blue-800",
-  completed: "bg-green-100 text-green-800",
-  cancelled: "bg-red-100 text-red-800",
-} as const;
-
-// Sample data - replace with actual API call
-const sampleOrders: Order[] = [
-  {
-    id: "1",
-    orderNumber: "ORD-001",
-    customer: {
-      name: "John Doe",
-      email: "john@example.com",
-      phone: "+233 20 123 4567",
-    },
-    date: "2024-03-20 14:30",
-    status: "completed" as OrderStatus,
-    items: [
-      {
-        id: "1",
-        name: "Classic Burger",
-        quantity: 2,
-        price: 29.99,
-        total: 59.98,
-      },
-    ],
-    subtotal: 59.98,
-    tax: 4.8,
-    total: 64.78,
-  },
-  {
-    id: "2",
-    orderNumber: "ORD-002",
-    customer: {
-      name: "Jane Smith",
-      email: "jane@example.com",
-      phone: "+233 24 987 6543",
-    },
-    date: "2024-03-20 15:45",
-    status: "pending" as OrderStatus,
-    items: [
-      {
-        id: "2",
-        name: "Cheese Pizza",
-        quantity: 1,
-        price: 34.99,
-        total: 34.99,
-      },
-    ],
-    subtotal: 34.99,
-    tax: 2.8,
-    total: 37.79,
-  },
-];
+export type OrderStatus = "pending" | "processing" | "completed" | "cancelled";
 
 interface OrdersTableProps {
   searchQuery: string;
@@ -91,38 +29,33 @@ interface OrdersTableProps {
 
 export function OrdersTable({ searchQuery, statusFilter }: OrdersTableProps) {
   const router = useRouter();
-  const { orders, setOrders, isLoading, setLoading, error, setError } =
-    useOrderStore();
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
 
   useEffect(() => {
     const fetchOrders = async () => {
-      setLoading(true);
+      setIsLoading(true);
       try {
-        // Replace with actual API call
-        await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate API delay
-        setOrders(sampleOrders);
+        const response = await ordersApi.getAll();
+        setOrders(response);
+        setError(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to fetch orders");
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
 
     fetchOrders();
-  }, [setOrders, setLoading, setError]);
+  }, []);
 
   useEffect(() => {
     // Filter orders based on search query and status
-    const filtered = orders
-      .filter(
-        (order) => statusFilter === "all" || order.status === statusFilter
-      )
-      .filter(
-        (order) =>
-          order.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          order.customer.name.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+    const filtered = orders.filter((order) =>
+      order.customer.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
     setFilteredOrders(filtered);
   }, [orders, searchQuery, statusFilter]);
 
@@ -169,29 +102,28 @@ export function OrdersTable({ searchQuery, statusFilter }: OrdersTableProps) {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Order Number</TableHead>
+            {/* <TableHead>Order ID</TableHead> */}
             <TableHead>Customer</TableHead>
-            <TableHead>Date</TableHead>
             <TableHead>Items</TableHead>
             <TableHead>Total</TableHead>
-            <TableHead>Status</TableHead>
             <TableHead className="w-[50px]"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {filteredOrders.map((order) => (
             <TableRow key={order.id}>
-              <TableCell className="font-medium">{order.orderNumber}</TableCell>
+              {/* <TableCell className="font-medium">{order.id}</TableCell> */}
               <TableCell>{order.customer.name}</TableCell>
-              <TableCell>{order.date}</TableCell>
               <TableCell>{order.items.length}</TableCell>
-              <TableCell>₵{order.total.toFixed(2)}</TableCell>
               <TableCell>
-                <Badge
-                  variant="secondary"
-                  className={cn("capitalize", orderStatuses[order.status])}>
-                  {order.status}
-                </Badge>
+                ₵
+                {order.items
+                  .reduce(
+                    (sum, item) =>
+                      sum + Number(item.product.price) * item.quantity,
+                    0
+                  )
+                  .toFixed(2)}
               </TableCell>
               <TableCell>
                 <DropdownMenu>
