@@ -107,11 +107,14 @@ export const columns: ColumnDef<Customer>[] = [
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => console.log("Edit customer:", customer.id)}>
               <Pencil className="mr-2 h-4 w-4" />
               Edit
             </DropdownMenuItem>
-            <DropdownMenuItem className="text-destructive">
+            <DropdownMenuItem
+              onClick={() => console.log("Delete customer:", customer.id)}
+              className="text-destructive">
               <Trash className="mr-2 h-4 w-4" />
               Delete
             </DropdownMenuItem>
