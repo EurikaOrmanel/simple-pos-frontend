@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Package, ShoppingCart, Users } from "lucide-react";
+import { Package, ShoppingCart } from "lucide-react";
 
 const sidebarLinks = [
   {
@@ -15,11 +15,6 @@ const sidebarLinks = [
     title: "Orders",
     href: "/admin/orders",
     icon: ShoppingCart,
-  },
-  {
-    title: "Customers",
-    href: "/admin/customers",
-    icon: Users,
   },
 ];
 
