@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -66,6 +66,20 @@ export function CustomerSearch() {
   const customer = useCartStore((state) => state.customer);
   const { toast } = useToast();
 
+  const resetForm = useCallback(() => {
+    setName("");
+    setPhone("");
+    setSuggestions([]);
+    setLastSearchQuery("");
+  }, []);
+
+  // Watch for customer being null and reset form
+  useEffect(() => {
+    if (!customer) {
+      resetForm();
+    }
+  }, [customer, resetForm]);
+
   const searchCustomers = useCallback(
     async (query: string) => {
       if (query.length < 2 || query === lastSearchQuery) return;
@@ -122,7 +136,9 @@ export function CustomerSearch() {
     if (name && phone) {
       // Validate phone number format (Ghana phone number format)
       const phoneRegex = /^0(2(0|[3-8])|5(0|[4-7]|9))\d{7}$/;
+      console.log("phone", phone);
       if (phoneRegex.test(phone)) {
+        console.log("Setting pending customer", name, phone);
         setPendingCustomer(name, phone);
       }
     }

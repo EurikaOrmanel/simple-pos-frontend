@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { CartItem } from "./CartItem";
 import Cookies from "js-cookie";
+import { API_BASE_URL } from "@/lib/api/client";
 
 interface CartSectionProps {
   className?: string;
@@ -32,30 +33,27 @@ async function createCustomer(data: { name: string; phone: string }) {
   const token = getAuthToken();
   if (!token) throw new Error("No authentication token found");
 
-  const response = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/v1/sales_persons/customers/`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: token,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-    }
-  );
+  const response = await fetch(`${API_BASE_URL}/v1/sales_persons/customers/`, {
+    method: "POST",
+    headers: {
+      Authorization: token,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
   if (!response.ok) throw new Error("Failed to create customer");
   return response.json();
 }
 
 async function createOrder(data: {
-  customerId: string;
-  items: { productId: string; quantity: number }[];
+  customer_id: string;
+  items: { product_id: string; quantity: number }[];
 }) {
   const token = getAuthToken();
   if (!token) throw new Error("No authentication token found");
 
   const response = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/v1/sales_persons/orders/`,
+    `${API_BASE_URL}/v1/sales_persons/orders/create`,
     {
       method: "POST",
       headers: {
@@ -123,23 +121,22 @@ export function CartSection({ className }: CartSectionProps) {
       } else {
         customerId = customer.id;
       }
-
       // Create the order
       await createOrder({
-        customerId,
+        customer_id: customerId,
         items: items.map((item) => ({
-          productId: item.id,
+          product_id: item.id,
           quantity: item.quantity,
         })),
       });
-
-      // Clear the cart after successful order
-      clearCart();
 
       toast({
         title: "Order Placed",
         description: `Order total: ₵${total.toFixed(2)}`,
       });
+
+      // Clear everything after successful order
+      clearCart(); // This will clear items, customer, and total
     } catch (error) {
       console.error("Checkout error:", error);
       toast({
@@ -196,11 +193,9 @@ export function CartSection({ className }: CartSectionProps) {
           onClick={handleCheckout}>
           {items.length === 0
             ? "Add Items to Cart"
-            : customer
-            ? customer.isPending
-              ? "Place Order & Create Customer"
-              : "Place Order"
-            : "Enter Customer Details"}
+            : customer?.isPending
+            ? "Place Order"
+            : "Place Order"}
         </Button>
       </div>
     </div>
