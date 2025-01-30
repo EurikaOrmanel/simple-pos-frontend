@@ -1,8 +1,3 @@
-"use client";
-
-import { ThemeToggle } from "@/components/theme-toggle";
-import { Button } from "@/components/ui/button";
-import { User } from "lucide-react";
 import { LogoutButton } from "@/components/auth/LogoutButton";
 
 export function AdminHeader() {
@@ -12,10 +7,6 @@ export function AdminHeader() {
         <div className="font-semibold">Simple POS Admin</div>
 
         <div className="flex items-center gap-4">
-          <ThemeToggle />
-          <Button variant="ghost" size="icon">
-            <User className="h-5 w-5" />
-          </Button>
           <LogoutButton />
         </div>
       </div>
